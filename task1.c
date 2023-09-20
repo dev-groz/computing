@@ -45,10 +45,23 @@ int main(){
     int n = 20;
     double step = (b - a) / n;
 
+    double x[100];
+    double y[100];
+
     for (int i = 0; i <= n; i++)
     {
-        double pos = a + step * i;
-        printf("%f; %f\n", pos, sin_of_square(pos));
+        x[i] = a + step * i;
+        y[i] = sin_of_square(x[i]);
 
+    }
+
+    for (int i = 0; i < n + 1; i++)
+    {
+        printf("\t%.3f", x[i]);
+    }
+    printf("\n");
+    for (int i = 0; i < n + 1; i++)
+    {
+        printf("\t%.3f", y[i]);
     }
 }
