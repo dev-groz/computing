@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 double mysin(double x, int n){
     double result = 0;
@@ -31,15 +32,33 @@ void print_table(double x[], double y[], int n){
     }
 }
 
-void print_by_rows(double x[], double y[], int n){
+void print_by_rows(double* x, double* y, int n){
     for (int i = 0; i < n + 1; i++)
     {
-        printf("%.3f; %.3f\n ", x[i], y[i]);
+        printf("%.3f; %.3f\n", x[i], y[i]);
     }
 }
 
-void polynom_lagrange(double x[], double y[], int n){
+double polynom_lagrange(double* x, double* y, int n, double x_point){
     
+    double result = 0;
+
+    for (int i = 0; i < n + 1; i++){
+        double product = 1;
+
+        for (int j = 0; j < n + 1; j++)
+        {
+            if (i == j) continue;
+            double numerator = (x_point - x[j]);
+            double denominator = (x[i] - x[j]);
+
+            product *= (numerator / denominator);
+        }
+        product *= y[i];
+        result += product;
+    }
+
+    return result;
 }
 
 int main(){
@@ -48,16 +67,27 @@ int main(){
     int n = 20;
     double step = (b - a) / n;
 
-    double x[100];
-    double y[100];
+    double* x = (double*)malloc(sizeof(double) * (n + 1));
+    double* y = (double*)malloc(sizeof(double) * (n + 1));
 
-    for (int i = 0; i <= n; i++)
+    for (int i = 0; i < n + 1; i++)
     {
         x[i] = a + step * i;
         y[i] = sin_of_square(x[i]);
 
     }
 
-    //print_table(x, y, n);
+    printf("Lagrange: \n");
+
+    for (int i = 0; i < n + 1; i++)
+    {
+        double result = polynom_lagrange(x, y, n, x[i]);
+        printf("%f; %f\n", x[i], result);
+    }
+    
+    
+    printf("\nTaylor values: \n");
+
+    // print_table(x, y, n);
     print_by_rows(x, y, n);
 }
