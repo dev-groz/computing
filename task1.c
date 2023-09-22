@@ -23,20 +23,36 @@ double sin_of_square(double x){
 void print_table(double x[], double y[], int n){
     for (int i = 0; i < n + 1; i++)
     {
-        printf("\t%.3f", x[i]);
+        printf("\t%f", x[i]);
     }
     printf("\n");
     for (int i = 0; i < n + 1; i++)
     {
-        printf("\t%.3f", y[i]);
+        printf("\t%f", y[i]);
     }
 }
 
 void print_by_rows(double* x, double* y, int n){
     for (int i = 0; i < n + 1; i++)
     {
-        printf("%.3f; %.3f\n", x[i], y[i]);
+        printf("%f; %f\n", x[i], y[i]);
     }
+}
+
+void output_in_file(double* x, double* y, int n, char* filename){
+    FILE* file = fopen(filename, "w");
+
+
+    if (file == NULL){
+        exit(1);
+    }
+
+    for (int i = 0; i < n + 1; i++)
+    {
+        fprintf(file, "%f; %f\n", x[i], y[i]);
+    }
+
+    fclose(file);
 }
 
 double polynom_lagrange(double* x, double* y, int n, double x_point){
@@ -86,8 +102,15 @@ int main(){
     }
     
     
-    printf("\nTaylor values: \n");
+    //TODO: Print values to file
+
+
+    //printf("\nTaylor values: \n");
 
     // print_table(x, y, n);
-    print_by_rows(x, y, n);
+    // print_by_rows(x, y, n);
+    output_in_file(x, y, n, "output.txt");
+
+    free(x);
+    free(y);
 }
