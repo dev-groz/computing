@@ -77,6 +77,33 @@ double polynom_lagrange(double* x, double* y, int n, double x_point){
     return result;
 }
 
+double divided_difference(double* x, double* y, int j, int k, int n){
+    if (k <= 1 || j >= n - 2){
+        double result = (y[j + 1] - y[j]) / (x[j + 1] - x[j]);
+        return result;
+    }
+
+    return (divided_difference(x, y, j + 1, k, n) - divided_difference(x, y, j, k - 1, n)) / (x[j + k] - x[j]);
+}
+
+double polynom_newton(double* x, double* y, int n, double x_point){
+    double result = y[0];
+
+    for (int i = 0; i < n; i++)
+    {
+        double product = 1;
+        for (int j = 0; j < i; j++)
+        {
+            product *= x_point - x[j];
+        }
+        product *= divided_difference(x, y, 0, i, n);
+
+        result += product;
+    }
+
+    return result;   
+}
+
 int main(){
     double a = -3.0;
     double b = 3.0;
@@ -100,7 +127,14 @@ int main(){
         double result = polynom_lagrange(x, y, n, x[i]);
         printf("%f; %f\n", x[i], result);
     }
-    
+
+    printf("Newton: \n");
+
+    for (int i = 0; i < n + 1; i++)
+    {
+        double result = polynom_newton(x, y, n, x[i]);
+        printf("%f; %f\n", x[i], result);
+    }    
     
     //TODO: Print values to file
 
