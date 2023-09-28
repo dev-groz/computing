@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "printing.h"
+#include "lagrange.h"
+
 double mysin(double x, int n){
     double result = 0;
     double elem = x;
@@ -20,74 +23,17 @@ double sin_of_square(double x){
 }
 
 
-void print_table(double x[], double y[], int n){
-    for (int i = 0; i < n + 1; i++)
-    {
-        printf("\t%f", x[i]);
-    }
-    printf("\n");
-    for (int i = 0; i < n + 1; i++)
-    {
-        printf("\t%f", y[i]);
-    }
-}
-
-void print_by_rows(double* x, double* y, int n){
-    for (int i = 0; i < n + 1; i++)
-    {
-        printf("%f; %f\n", x[i], y[i]);
-    }
-}
-
-void output_in_file(double* x, double* y, int n, char* filename){
-    FILE* file = fopen(filename, "w");
-
-
-    if (file == NULL){
-        exit(1);
-    }
-
-    for (int i = 0; i < n + 1; i++)
-    {
-        fprintf(file, "%f; %f\n", x[i], y[i]);
-    }
-
-    fclose(file);
-}
-
-double polynom_lagrange(double* x, double* y, int n, double x_point){
-    
-    double result = 0;
-
-    for (int i = 0; i < n + 1; i++){
-        double product = 1;
-
-        for (int j = 0; j < n + 1; j++)
-        {
-            if (i == j) continue;
-            double numerator = (x_point - x[j]);
-            double denominator = (x[i] - x[j]);
-
-            product *= (numerator / denominator);
-        }
-        product *= y[i];
-        result += product;
-    }
-
-    return result;
-}
-
 double divided_difference(double* x, double* y, int j, int k, int n){
-    if (k <= 1 || j >= n - 2){
-        double result = (y[j + 1] - y[j]) / (x[j + 1] - x[j]);
-        return result;
+
+    if(k == 0){
+        return y[j];
     }
 
-    return (divided_difference(x, y, j + 1, k, n) - divided_difference(x, y, j, k - 1, n)) / (x[j + k] - x[j]);
+    return (divided_difference(x, y, j + 1, k - 1, n) - divided_difference(x, y, j, k - 1, n)) / (x[j + k] - x[j]);
 }
 
 double polynom_newton(double* x, double* y, int n, double x_point){
-    double result = y[0];
+    double result = 0;
 
     for (int i = 0; i < n; i++)
     {
@@ -104,6 +50,8 @@ double polynom_newton(double* x, double* y, int n, double x_point){
     return result;   
 }
 
+
+
 int main(){
     double a = -3.0;
     double b = 3.0;
@@ -113,38 +61,58 @@ int main(){
     double* x = (double*)malloc(sizeof(double) * (n + 1));
     double* y = (double*)malloc(sizeof(double) * (n + 1));
 
+    int new_n = 500;
+
+    double* new_x = (double*)malloc(sizeof(double) * (new_n + 1));
+
     for (int i = 0; i < n + 1; i++)
     {
         x[i] = a + step * i;
         y[i] = sin_of_square(x[i]);
-
     }
 
-    printf("Lagrange: \n");
+    double new_step = (b - a) / new_n;
 
-    for (int i = 0; i < n + 1; i++)
+    for (int i = 0; i < new_n + 1; i++)
     {
-        double result = polynom_lagrange(x, y, n, x[i]);
-        printf("%f; %f\n", x[i], result);
+        new_x[i] = a + new_step * i;
     }
 
-    printf("Newton: \n");
+    // printf("Polynom: \n");
 
-    for (int i = 0; i < n + 1; i++)
+
+    FILE* file = fopen("output_lag.dat", "w");
+
+    if (file == NULL){
+        exit(1);
+    }
+
+    for (int i = 0; i < new_n + 1; i++)
     {
-        double result = polynom_newton(x, y, n, x[i]);
-        printf("%f; %f\n", x[i], result);
-    }    
-    
-    //TODO: Print values to file
+        // double result = polynom_lagrange(x, y, n, new_x[i]);
+        double result = polynom_newton(x, y, n, new_x[i]);
+        fprintf(file, "%f\t %f\n", new_x[i], result);
+    }
 
+    fclose(file);
+
+
+    // for (int i = 0; i < new_n + 1; i++)
+    // {
+    // //     double result = polynom_lagrange(x, y, n, new_x[i]);
+    //     double result = polynom_newton(x, y, n, new_x[i]);
+    //     fprintf(file1, "%f\t %f\n", new_x[i], result);
+    // }
+
+    // printf("Newton: \n");    
 
     //printf("\nTaylor values: \n");
 
     // print_table(x, y, n);
-    // print_by_rows(x, y, n);
-    output_in_file(x, y, n, "output.txt");
+    //print_by_rows(x, y, n);
+    //output_in_file(x, y, n, "output.dat");
 
     free(x);
     free(y);
+    free(new_x);
 }
