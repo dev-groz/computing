@@ -22,3 +22,14 @@ void print_by_rows(double* x, double* y, int n){
         printf("%f; %f\n", x[i], y[i]);
     }
 }
+
+void output_in_file(double* x, double* y, int n, char* filename){
+    FILE* file = fopen(filename, "w");
+
+    for (int i = 0; i < n; i++)
+    {
+        fprintf(file, "%f\t%f\n", x[i], y[i]);
+    }
+    
+    fclose(file);
+}

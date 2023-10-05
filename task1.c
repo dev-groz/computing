@@ -3,6 +3,7 @@
 
 #include "printing.h"
 #include "lagrange.h"
+#include "newton.h"
 
 double mysin(double x, int n){
     double result = 0;
@@ -21,36 +22,6 @@ double mysin(double x, int n){
 double sin_of_square(double x){
     return mysin(x * x, 20);
 }
-
-
-double divided_difference(double* x, double* y, int j, int k, int n){
-
-    if(k == 0){
-        return y[j];
-    }
-
-    return (divided_difference(x, y, j + 1, k - 1, n) - divided_difference(x, y, j, k - 1, n)) / (x[j + k] - x[j]);
-}
-
-double polynom_newton(double* x, double* y, int n, double x_point){
-    double result = 0;
-
-    for (int i = 0; i < n; i++)
-    {
-        double product = 1;
-        for (int j = 0; j < i; j++)
-        {
-            product *= x_point - x[j];
-        }
-        product *= divided_difference(x, y, 0, i, n);
-
-        result += product;
-    }
-
-    return result;   
-}
-
-
 
 int main(){
     double a = -3.0;
@@ -78,10 +49,9 @@ int main(){
         new_x[i] = a + new_step * i;
     }
 
-    // printf("Polynom: \n");
 
-
-    FILE* file = fopen("output_lag.dat", "w");
+    // FILE* file = fopen("output_lag.dat", "w");
+    FILE* file = fopen("output_new.dat", "w");
 
     if (file == NULL){
         exit(1);
