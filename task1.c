@@ -6,6 +6,9 @@
 #include "lagrange.h"
 #include "newton.h"
 
+#define MAX_INT 2147483647
+#define PI 3.14159265358979323846
+
 double mysin(double x, int n){
     double result = 0;
     double elem = x;
@@ -27,6 +30,9 @@ int factorial(int n){
     for (int i = 1; i <= n; i++){
         result *= i;
     }
+
+    if (result < 0)
+        return MAX_INT;
 
     return result;
 }
@@ -50,7 +56,9 @@ double derivative(double xi, int n){
 double find_error(double* x, int n, double xi, double point){
     double result = derivative(xi, n + 1);
 
-    result /= factorial(n + 1);
+    double fact = factorial(n + 1);
+
+    result /= fact;
 
     double omega = 1;
     for (int i = 0; i < n; i++)
@@ -60,11 +68,12 @@ double find_error(double* x, int n, double xi, double point){
     
     omega = omega > 0 ? omega : -omega;
 
+    result *= omega;
+
     return result;
 }
 
-void output_in_file_polynom(double* x, double* y, double* new_x, int n, int new_n, char* filename){
-    // FILE* file = fopen("output_lag.dat", "w");
+void output_in_file_polynom_lag(double* x, double* y, double* new_x, int n, int new_n, char* filename){
     FILE* file = fopen(filename, "w");
 
     if (file == NULL){
@@ -73,7 +82,22 @@ void output_in_file_polynom(double* x, double* y, double* new_x, int n, int new_
 
     for (int i = 0; i < new_n + 1; i++)
     {
-        // double result = polynom_lagrange(x, y, n, new_x[i]);
+        double result = polynom_lagrange(x, y, n, new_x[i]);
+        fprintf(file, "%f\t %f\n", new_x[i], result);
+    }
+
+    fclose(file);
+}
+
+void output_in_file_polynom_new(double* x, double* y, double* new_x, int n, int new_n, char* filename){
+    FILE* file = fopen(filename, "w");
+
+    if (file == NULL){
+        exit(1);
+    }
+
+    for (int i = 0; i < new_n + 1; i++)
+    {
         double result = polynom_newton(x, y, n, new_x[i]);
         fprintf(file, "%f\t %f\n", new_x[i], result);
     }
@@ -81,24 +105,39 @@ void output_in_file_polynom(double* x, double* y, double* new_x, int n, int new_
     fclose(file);
 }
 
+void real_error(double* x, double* y, int n, double* new_x, int new_n){
+
+    FILE* file = fopen("real_error.dat", "w");
+
+    for (int i = 0; i < new_n + 1; i++)
+    {
+        double result = sin(new_x[i] * new_x[i]) - polynom_lagrange(x, y, n, new_x[i]);
+        result = result > 0 ? result : -result;
+        fprintf(file, "%f\t %f\n", new_x[i], result);
+    }
+    
+
+}
 
 int main(){
     double a = -3.0;
     double b = 3.0;
-    int n = 20;
+    int n = 10;
     double step = (b - a) / n;
 
     double* x = (double*)malloc(sizeof(double) * (n + 1));
     double* y = (double*)malloc(sizeof(double) * (n + 1));
 
-    int new_n = 500;
+    int new_n = 300;
 
     double* new_x = (double*)malloc(sizeof(double) * (new_n + 1));
 
     for (int i = 0; i < n + 1; i++)
     {
         x[i] = a + step * i;
-        y[i] = sin_of_square(x[i]);
+        //x[i] = 0.5 * (b + a) + 0.5 * (b - a) * cos((2 * i + 1) * PI /(2 * (n + 1))); 
+        // y[i] = sin_of_square(x[i]);
+        y[i] = pow(x[i], 2);
     }
 
     double new_step = (b - a) / new_n;
@@ -107,32 +146,21 @@ int main(){
     {
         new_x[i] = a + new_step * i;
     }
+    
 
-
-    // output_in_file_polynom(x, y, new_x, n, new_n, "output_lag.dat");
-
-
-    // for (int i = 0; i < new_n + 1; i++)
-    // {
-    // //     double result = polynom_lagrange(x, y, n, new_x[i]);
-    //     double result = polynom_newton(x, y, n, new_x[i]);
-    //     fprintf(file1, "%f\t %f\n", new_x[i], result);
-    // }
-
-    // printf("Newton: \n");    
-
-    //printf("\nTaylor values: \n");
+    output_in_file_polynom_lag(x, y, new_x, n, new_n, "output_lag.dat");
+    //output_in_file_polynom_new(x, y, new_x, n, new_n, "output_new_chebysh.dat");
 
     // print_table(x, y, n);
     //print_by_rows(x, y, n);
     //output_in_file(x, y, n, "output.dat");
 
-    for (int i = 0; i < n; i++)
-    {
-        printf("%f\t%f\n", x[i], find_error(x, 3, 4, x[i]));
-    }
+    // for (int i = 0; i < new_n; i++)
+    // {
+    //     printf("%f\t%f\n", new_x[i], find_error(x, n, 4, new_x[i]));
+    // }
     
-
+    real_error(x,y,n, new_x, new_n);
 
     free(x);
     free(y);
