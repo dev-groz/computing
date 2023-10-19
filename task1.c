@@ -107,7 +107,7 @@ void output_in_file_polynom_new(double* x, double* y, double* new_x, int n, int 
 
 void real_error(double* x, double* y, int n, double* new_x, int new_n){
 
-    FILE* file = fopen("real_error.dat", "w");
+    FILE* file = fopen("output\\real_error.dat", "w");
 
     for (int i = 0; i < new_n + 1; i++)
     {
@@ -122,7 +122,7 @@ void real_error(double* x, double* y, int n, double* new_x, int new_n){
 int main(){
     double a = -3.0;
     double b = 3.0;
-    int n = 10;
+    int n = 20;
     double step = (b - a) / n;
 
     double* x = (double*)malloc(sizeof(double) * (n + 1));
@@ -134,10 +134,11 @@ int main(){
 
     for (int i = 0; i < n + 1; i++)
     {
+        //equidistant values
         x[i] = a + step * i;
+        //Chebyshev values
         //x[i] = 0.5 * (b + a) + 0.5 * (b - a) * cos((2 * i + 1) * PI /(2 * (n + 1))); 
-        // y[i] = sin_of_square(x[i]);
-        y[i] = pow(x[i], 2);
+        y[i] = sin_of_square(x[i]);
     }
 
     double new_step = (b - a) / new_n;
@@ -148,16 +149,16 @@ int main(){
     }
     
 
-    output_in_file_polynom_lag(x, y, new_x, n, new_n, "output_lag.dat");
-    //output_in_file_polynom_new(x, y, new_x, n, new_n, "output_new_chebysh.dat");
+    //output_in_file_polynom_lag(x, y, new_x, n, new_n, "outputs\\output_lag.dat");
+    output_in_file_polynom_new(x, y, new_x, n, new_n, "outputs\\output_new.dat");
 
     // print_table(x, y, n);
     //print_by_rows(x, y, n);
-    //output_in_file(x, y, n, "output.dat");
+    //output_in_file(x, y, n + 1, "outputs\\output.dat");
 
     // for (int i = 0; i < new_n; i++)
     // {
-    //     printf("%f\t%f\n", new_x[i], find_error(x, n, 4, new_x[i]));
+    //     printf("%f\t%f\n", new_x[i], find_error(x, 3, 3, new_x[i]));
     // }
     
     real_error(x,y,n, new_x, new_n);
