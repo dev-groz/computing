@@ -98,7 +98,7 @@ void output_in_file_polynom_new(double* x, double* y, double* new_x, int n, int 
 
     for (int i = 0; i < new_n + 1; i++)
     {
-        double result = polynom_newton(x, y, n, new_x[i]);
+        double result = polynom_newton(x, y, n + 1, new_x[i]);
         fprintf(file, "%f\t %f\n", new_x[i], result);
     }
 
@@ -161,7 +161,9 @@ int main(){
     //     printf("%f\t%f\n", new_x[i], find_error(x, 3, 3, new_x[i]));
     // }
     
-    real_error(x,y,n, new_x, new_n);
+    //divided_difference_table(x, y, n + 1);
+
+    //real_error(x,y,n, new_x, new_n);
 
     free(x);
     free(y);
