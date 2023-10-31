@@ -105,9 +105,9 @@ void output_in_file_polynom_new(double* x, double* y, double* new_x, int n, int 
     fclose(file);
 }
 
-void real_error(double* x, double* y, int n, double* new_x, int new_n){
+void output_real_error(double* x, double* y, int n, double* new_x, int new_n){
 
-    FILE* file = fopen("output\\real_error.dat", "w");
+    FILE* file = fopen("outputs\\real_error.dat", "w");
 
     for (int i = 0; i < new_n + 1; i++)
     {
@@ -115,14 +115,24 @@ void real_error(double* x, double* y, int n, double* new_x, int new_n){
         result = result > 0 ? result : -result;
         fprintf(file, "%f\t %f\n", new_x[i], result);
     }
-    
+    fclose(file);
+}
 
+void output_approximate_error(double* x, double* new_x, int new_n){
+    FILE* file = fopen("outputs\\approximate_error.dat", "w");
+
+    for (int i = 0; i < new_n; i++)
+    {
+        fprintf(file, "%f\t%f\n", new_x[i], find_error(x, 3, 3, new_x[i]));
+    }
+
+    fclose(file);
 }
 
 int main(){
     double a = -3.0;
     double b = 3.0;
-    int n = 20;
+    int n = 7;
     double step = (b - a) / n;
 
     double* x = (double*)malloc(sizeof(double) * (n + 1));
@@ -138,7 +148,8 @@ int main(){
         x[i] = a + step * i;
         //Chebyshev values
         //x[i] = 0.5 * (b + a) + 0.5 * (b - a) * cos((2 * i + 1) * PI /(2 * (n + 1))); 
-        y[i] = sin_of_square(x[i]);
+        // y[i] = sin_of_square(x[i]);
+        y[i] = pow(x[i], 10);
     }
 
     double new_step = (b - a) / new_n;
@@ -146,24 +157,18 @@ int main(){
     for (int i = 0; i < new_n + 1; i++)
     {
         new_x[i] = a + new_step * i;
-    }
-    
+    }   
 
-    //output_in_file_polynom_lag(x, y, new_x, n, new_n, "outputs\\output_lag.dat");
+    output_in_file_polynom_lag(x, y, new_x, n, new_n, "outputs\\output_lag.dat");
     output_in_file_polynom_new(x, y, new_x, n, new_n, "outputs\\output_new.dat");
 
     // print_table(x, y, n);
     //print_by_rows(x, y, n);
     //output_in_file(x, y, n + 1, "outputs\\output.dat");
 
-    // for (int i = 0; i < new_n; i++)
-    // {
-    //     printf("%f\t%f\n", new_x[i], find_error(x, 3, 3, new_x[i]));
-    // }
-    
-    //divided_difference_table(x, y, n + 1);
+    //output_approximate_error(x, new_x, new_n);
 
-    //real_error(x,y,n, new_x, new_n);
+    // output_real_error(x,y,n, new_x, new_n);
 
     free(x);
     free(y);

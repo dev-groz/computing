@@ -24,9 +24,7 @@ double** divided_difference_table(double* x, double* y, int n){
         {
             table[i][j] = 0;
         }
-        
-    }   
-    
+    }       
     
     for (int i = 0; i < n; i++)
     {
@@ -40,7 +38,6 @@ double** divided_difference_table(double* x, double* y, int n){
         {
             table[i][j] = (table[i + 1][j - 1] - table[i][j - 1]) / (table[i + j - 1][0] - table[i][0]);
         }
-        
     }
 
     // for (int i = 0; i < n; i++)
