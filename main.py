@@ -6,20 +6,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+a = 1
+b = 1.2
+
 def real_u(X, Y):
     return np.exp(X) * np.cos(Y)
 
 def f(x, y):
     return 0.2 * np.exp(x) * np.cos(y)
 
-def max_eigen_value():
+def find_eigen_values():
+    global a, b
     h = float(entry_step.get())
     tau = float(entry_step.get())
 
     n = (int)(1 // h) + 1
-
-    a = 1
-    b = 1.2
 
     eps = float(entry_error.get())
 
@@ -30,51 +31,58 @@ def max_eigen_value():
         u[0][i] = 0
         u[n-1][i] = 0
 
-    u_norm = 0    
-    for i in range(n):
-        for j in range(n):
-            u_norm += u[i][j] * u[i][j]
-    u_norm = u_norm ** 0.5
-
-    u = u / u_norm
+    u = u / np.linalg.norm(u)
 
     v = np.empty((n, n))
 
     prev_eigen = float('inf')
-    eigen_value = 0
+    max_eigen_value = 0
 
-    while abs(prev_eigen - eigen_value) >= eps:
+    while abs(prev_eigen - max_eigen_value) >= eps:
         for i in range(1, n - 1):
             for j in range(1, n - 1):
                 v[i][j] = -a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(tau*tau)
         
-        prev_eigen = eigen_value
-        eigen_value = 0
+        prev_eigen = max_eigen_value
+        max_eigen_value = 0
         for i in range(n):
             for j in range(n):
-                eigen_value += u[i][j] * v[i][j]
+                max_eigen_value += u[i][j] * v[i][j]
         
-        v_norm = 0    
+        u = v / np.linalg.norm(v)
+
+    B_max_eigen_value = 0
+
+    prev_eigen = float('inf')
+    B_max_eigen_value = 0
+
+    while abs(prev_eigen - B_max_eigen_value) >= eps:
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                v[i][j] = (max_eigen_value + 1) * u[i][j] - (-a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(tau*tau))
+        
+        prev_eigen = B_max_eigen_value
+        B_max_eigen_value = 0
         for i in range(n):
             for j in range(n):
-                v_norm += v[i][j] * v[i][j]
-        v_norm = v_norm ** 0.5
-        u = v / v_norm
-        label_max_eigen_value['text'] = str(eigen_value)
+                B_max_eigen_value += u[i][j] * v[i][j]
 
+        u = v / np.linalg.norm(v)
 
+    min_eigen_value = max_eigen_value - B_max_eigen_value
+
+    label_max_eigen_value['text'] = str(max_eigen_value)
+    label_min_eigen_value['text'] = str(min_eigen_value)
 
 ani = []
 
 def plot_jacobi_method(): 
-    global ani
+    global ani, a, b
     h = float(entry_step.get())
     tau = float(entry_step.get())
 
     n = (int)(1 // h) + 1
 
-    a = 1
-    b = 1.2
 
     u = np.zeros((n, n))
     next_u = np.zeros((n, n))
@@ -151,5 +159,5 @@ label_max_eigen_value.grid(column = 1, row = 3)
 
 ttk.Button(frm, text='Показать точное решение', command=plot_real_function).grid(column = 1, row = 5)
 ttk.Button(frm, text='Метод Якоби', command=plot_jacobi_method).grid(column = 2, row = 5)
-ttk.Button(frm, text='Найти максимальное собственное значение', command=max_eigen_value).grid(column = 1, row = 6)
+ttk.Button(frm, text='Найти собственные значения', command=find_eigen_values).grid(column = 1, row = 6)
 root.mainloop()
