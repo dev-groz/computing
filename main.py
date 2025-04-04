@@ -97,6 +97,8 @@ def plot_jacobi_method():
     fig = plt.figure(2)
     plt.title("Метод Якоби")
 
+    #TODO: Вместо 1000 итераций, условие что ||u_k - u(x,y)|| < eps
+    #                                        текущее  точное
     for k in range(1000):
         for i in range(1, n - 1):
             for j in range(1, n - 1):
@@ -106,6 +108,8 @@ def plot_jacobi_method():
         u = next_u
         artists.append([plt.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0,1,0,1))])
 
+    #TODO: Отрисовывать in time
+    #TODO: На каждой итерации выводить ее номер, невязку, ошибку, погрешность
     ani = animation.ArtistAnimation(fig, artists=artists, interval=100)
 
     plt.show()
@@ -136,6 +140,7 @@ entry_step = ttk.Entry(frm)
 entry_step.insert(0, '0.01')
 entry_step.grid(column = 1, row = 0)
 
+#TODO: Сделать переключатель метода остановки (ошибка, погрешность, количество итераций)
 label_error = ttk.Label(frm, text='Ошибка:')
 label_error.grid(column = 0, row = 1)
 
