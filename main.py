@@ -76,6 +76,59 @@ def find_eigen_values():
 
 ani = []
 
+def plot_fast_desc_method():
+    global ani, a, b
+    h = float(entry_step.get())
+    tau = float(entry_step.get())
+
+    n = (int)(1 // h) + 1
+    eps = float(entry_error.get())
+
+    u = np.zeros((n, n))
+    next_u = np.zeros((n, n))
+    for i in range(n):
+        next_u[i][0] = real_u(i*h, 0)
+        next_u[i][n-1] = real_u(i*h, 1)
+        next_u[0][i] = real_u(0, i*tau)
+        next_u[n-1][i] = real_u(1, i*tau)
+    
+    artists = []
+
+    fig = plt.figure(2)
+    plt.title("Метод скорейшего спуска")
+
+    r = np.zeros((n, n))
+    norm_r = float('+inf')
+    while (norm_r > eps):
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                r[i][j] = a * (u[i+1][j] - 2*u[i][j] + u[i-1][j]) / h + b * (u[i][j+1] - 2*u[i][j] + u[i][j-1]) / tau + f(i * h, j * tau)
+
+        numer = 0
+        denom = 0
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                numer += r[i][j] * r[i][j]
+                denom += r[i][j] * (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) / h + b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) / tau)
+
+        alpha_k = numer/denom
+
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                x_i = h * i
+                t_j = tau * j
+
+                next_u[i][j] = u[i][j] - alpha_k * r[i][j]
+        u = next_u
+        artists.append([plt.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0,1,0,1))])
+        norm_r = np.linalg.norm(r)
+
+    
+    ani = animation.ArtistAnimation(fig, artists=artists, interval=100)
+
+    plt.show()
+
+
 def plot_jacobi_method(): 
     global ani, a, b
     h = float(entry_step.get())
@@ -141,7 +194,7 @@ entry_step.insert(0, '0.01')
 entry_step.grid(column = 1, row = 0)
 
 #TODO: Сделать переключатель метода остановки (ошибка, погрешность, количество итераций)
-label_error = ttk.Label(frm, text='Ошибка:')
+label_error = ttk.Label(frm, text='Эпсилон:')
 label_error.grid(column = 0, row = 1)
 
 entry_error = ttk.Entry(frm)
@@ -164,5 +217,6 @@ label_max_eigen_value.grid(column = 1, row = 3)
 
 ttk.Button(frm, text='Показать точное решение', command=plot_real_function).grid(column = 1, row = 5)
 ttk.Button(frm, text='Метод Якоби', command=plot_jacobi_method).grid(column = 2, row = 5)
+ttk.Button(frm, text='Метод Скорейшего спуска', command=plot_fast_desc_method).grid(column = 3, row = 5)
 ttk.Button(frm, text='Найти собственные значения', command=find_eigen_values).grid(column = 1, row = 6)
 root.mainloop()
