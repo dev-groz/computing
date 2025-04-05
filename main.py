@@ -94,7 +94,7 @@ def plot_fast_desc_method():
     
     artists = []
 
-    fig = plt.figure(2)
+    fig = plt.figure(3)
     plt.title("Метод скорейшего спуска")
 
     r = np.zeros((n, n))
@@ -124,7 +124,7 @@ def plot_fast_desc_method():
         norm_r = np.linalg.norm(r)
 
     
-    ani = animation.ArtistAnimation(fig, artists=artists, interval=100)
+    ani = animation.ArtistAnimation(fig, artists=artists, interval=100, repeat=False)
 
     plt.show()
 
@@ -135,6 +135,7 @@ def plot_jacobi_method():
     tau = float(entry_step.get())
 
     n = (int)(1 // h) + 1
+    eps = float(entry_error.get())
 
 
     u = np.zeros((n, n))
@@ -150,20 +151,28 @@ def plot_jacobi_method():
     fig = plt.figure(2)
     plt.title("Метод Якоби")
 
-    #TODO: Вместо 1000 итераций, условие что ||u_k - u(x,y)|| < eps
-    #                                        текущее  точное
-    for k in range(1000):
+    diff_to_real_norm = float('+inf')
+
+    while diff_to_real_norm > eps:
         for i in range(1, n - 1):
             for j in range(1, n - 1):
                 x_i = h * i
                 t_j = tau * j
                 next_u[i][j] = (f(x_i, t_j)*h*h*tau*tau + a*tau*tau*(u[i+1][j] + u[i-1][j]) + b*h*h*(u[i][j+1] + u[i][j-1])) / (2*(a*tau*tau + b*h*h))
         u = next_u
+        
+        diff_to_real_norm = 0
+        for i in range(n):
+            for j in range(n):
+                diff_to_real_norm += (real_u(i*h, j*tau) - u[i][j])**2
+        diff_to_real_norm = np.sqrt(diff_to_real_norm)
+
+        plt.text(50, 50, "hello")
         artists.append([plt.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0,1,0,1))])
 
     #TODO: Отрисовывать in time
     #TODO: На каждой итерации выводить ее номер, невязку, ошибку, погрешность
-    ani = animation.ArtistAnimation(fig, artists=artists, interval=100)
+    ani = animation.ArtistAnimation(fig, artists=artists, interval=100, repeat=False)
 
     plt.show()
 
