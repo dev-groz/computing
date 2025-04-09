@@ -6,6 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+from matplotlib.animation import FuncAnimation
+from matplotlib import cm
+
 a = 1
 b = 1.2
 
@@ -74,9 +77,89 @@ def find_eigen_values():
     label_max_eigen_value['text'] = str(max_eigen_value)
     label_min_eigen_value['text'] = str(min_eigen_value)
 
-ani = []
 
 def plot_fast_desc_method():
+    global ani, a, b
+    h = float(entry_step.get())
+    tau = float(entry_step.get())
+
+    n = (int)(1 // h) + 1
+    eps = float(entry_error.get())
+
+    u = np.zeros((n, n))
+    next_u = np.zeros((n, n))
+    
+    for i in range(n):
+        next_u[i][0] = real_u(i*h, 0)
+        next_u[i][n-1] = real_u(i*h, 1)
+        next_u[0][i] = real_u(0, i*tau)
+        next_u[n-1][i] = real_u(1, i*tau)
+    
+    fig = plt.figure(3)
+    ax = fig.add_subplot(111)
+    plt.title("Метод скорейшего спуска")
+    
+    img = ax.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0, 1, 0, 1))
+    
+    iter_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color='black')
+    residual_text = ax.text(0.02, 0.90, "", transform=ax.transAxes, color='black')
+    alpha_text = ax.text(0.02, 0.85, "", transform=ax.transAxes, color='black')
+    
+    r = np.zeros((n, n))
+    norm_r = float('+inf')
+    iteration = 0
+    
+    def update(frame):
+        nonlocal u, next_u, r, norm_r, iteration
+        
+        if norm_r <= eps:
+            return img, iter_text, residual_text, alpha_text
+        
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                r[i][j] = (a * (u[i+1][j] - 2*u[i][j] + u[i-1][j]) / h**2 + 
+                          b * (u[i][j+1] - 2*u[i][j] + u[i][j-1]) / tau**2 + 
+                          f(i*h, j*tau))
+        
+        numer = np.sum(r[1:-1, 1:-1]**2)
+        Ar = np.zeros_like(r)
+        for i in range(1, n-1):
+            for j in range(1, n-1):
+                Ar[i,j] = (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) / h**2 +
+                          b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) / tau**2)
+        denom = np.sum(r[1:-1, 1:-1] * Ar[1:-1, 1:-1])
+        alpha_k = numer / denom if denom != 0 else 0
+        
+        next_u[1:-1, 1:-1] = u[1:-1, 1:-1] - alpha_k * r[1:-1, 1:-1]
+        u = next_u.copy()
+        
+        norm_r = np.linalg.norm(r)
+        iteration += 1
+        
+        img.set_array(u.T)
+        img.set_clim(np.min(u), np.max(u)) 
+        
+        iter_text.set_text(f"Итерация: {iteration}")
+        residual_text.set_text(f"Норма невязки: {norm_r:.6f}")
+        alpha_text.set_text(f"Alpha_k: {alpha_k:.6f}")
+        
+        return img, iter_text, residual_text, alpha_text
+    
+    ani = FuncAnimation(
+        fig, 
+        update, 
+        frames=range(1000),
+        interval=100,      
+        blit=True,         
+        repeat=False       
+    )
+    
+    plt.tight_layout()
+    plt.show()
+
+ani = []
+
+def plot_fast_desc_method_old():
     global ani, a, b
     h = float(entry_step.get())
     tau = float(entry_step.get())
@@ -129,7 +212,7 @@ def plot_fast_desc_method():
     plt.show()
 
 
-def plot_jacobi_method(): 
+def plot_jacobi_method():
     global ani, a, b
     h = float(entry_step.get())
     tau = float(entry_step.get())
@@ -137,44 +220,79 @@ def plot_jacobi_method():
     n = (int)(1 // h) + 1
     eps = float(entry_error.get())
 
-
     u = np.zeros((n, n))
     next_u = np.zeros((n, n))
-    for i in range(n):
-        next_u[i][0] = real_u(i*h, 0)
-        next_u[i][n-1] = real_u(i*h, 1)
-        next_u[0][i] = real_u(0, i*tau)
-        next_u[n-1][i] = real_u(1, i*tau)
     
-    artists = []
 
+    for i in range(n):
+        next_u[i][0] = real_u(i * h, 0)
+        next_u[i][n - 1] = real_u(i * h, 1)
+        next_u[0][i] = real_u(0, i * tau)
+        next_u[n - 1][i] = real_u(1, i * tau)
+    
     fig = plt.figure(2)
+    ax = fig.add_subplot(111)
     plt.title("Метод Якоби")
+    
 
-    diff_to_real_norm = float('+inf')
+    img = ax.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0, 1, 0, 1))
+    
 
-    while diff_to_real_norm > eps:
+    iter_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color='black')
+    residual_text = ax.text(0.02, 0.90, "", transform=ax.transAxes, color='black')
+    
+    max_norm = float('+inf')
+    iteration = 0
+    
+    def update(frame):
+        nonlocal u, next_u, max_norm, iteration
+        
+        if max_norm <= eps:
+            return img, iter_text, residual_text
+        
+
         for i in range(1, n - 1):
             for j in range(1, n - 1):
                 x_i = h * i
                 t_j = tau * j
-                next_u[i][j] = (f(x_i, t_j)*h*h*tau*tau + a*tau*tau*(u[i+1][j] + u[i-1][j]) + b*h*h*(u[i][j+1] + u[i][j-1])) / (2*(a*tau*tau + b*h*h))
-        u = next_u
+                next_u[i][j] = (f(x_i, t_j) * h * h * tau * tau + 
+                               a * tau * tau * (u[i + 1][j] + u[i - 1][j]) + 
+                               b * h * h * (u[i][j + 1] + u[i][j - 1])) / (2 * (a * tau * tau + b * h * h))
         
+        u = next_u.copy()
+        
+
+        max_norm = 0
         diff_to_real_norm = 0
-        for i in range(n):
-            for j in range(n):
-                diff_to_real_norm += (real_u(i*h, j*tau) - u[i][j])**2
-        diff_to_real_norm = np.sqrt(diff_to_real_norm)
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                max_norm = max(max_norm, np.abs(real_u(i * h, j * tau) - u[i][j]))
+        
+        iteration += 1
+        
 
-        plt.text(50, 50, "hello")
-        artists.append([plt.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0,1,0,1))])
+        img.set_array(u.T)
+        img.set_clim(np.min(u), np.max(u))
+        iter_text.set_text(f"Итерация: {iteration}")
+        residual_text.set_text(f"Ошибка: {max_norm:.6f}")
+        
+        return img, iter_text, residual_text
+    
 
-    #TODO: Отрисовывать in time
-    #TODO: На каждой итерации выводить ее номер, невязку, ошибку, погрешность
-    ani = animation.ArtistAnimation(fig, artists=artists, interval=100, repeat=False)
-
+    ani = FuncAnimation(
+        fig, 
+        update, 
+        frames=range(1000),
+        interval=100,      
+        blit=True,         
+        repeat=False       
+    )
+    
+    
+    plt.tight_layout()
     plt.show()
+
+
 
 def plot_real_function():
     step = float(entry_step.get())
@@ -194,6 +312,8 @@ root = Tk()
 root.geometry('600x400')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
+
+root.title("Вычислительный практикум решение задачи Дирихле")
 
 label_step = ttk.Label(frm, text='Шаг сетки:')
 label_step.grid(column = 0, row = 0)
