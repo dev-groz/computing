@@ -1,11 +1,7 @@
 from tkinter import *
 from tkinter import ttk
-
 import numpy as np
-
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
 from matplotlib.animation import FuncAnimation
 from matplotlib import cm
 
@@ -24,7 +20,6 @@ def find_eigen_values():
     tau = float(entry_step.get())
 
     n = (int)(1 // h) + 1
-
     eps = float(entry_error.get())
 
     u = np.ones((n, n))
@@ -35,7 +30,6 @@ def find_eigen_values():
         u[n-1][i] = 0
 
     u = u / np.linalg.norm(u)
-
     v = np.empty((n, n))
 
     prev_eigen = float('inf')
@@ -55,7 +49,6 @@ def find_eigen_values():
         u = v / np.linalg.norm(v)
 
     B_max_eigen_value = 0
-
     prev_eigen = float('inf')
     B_max_eigen_value = 0
 
@@ -77,6 +70,15 @@ def find_eigen_values():
     label_max_eigen_value['text'] = str(max_eigen_value)
     label_min_eigen_value['text'] = str(min_eigen_value)
 
+def update_iteration_info(method, iteration, diff_norm, solution_error, alpha_k=None):
+    label_method['text'] = f"Метод: {method}"
+    label_iteration['text'] = f"Итерация: {iteration}"
+    label_diff_norm['text'] = f"Норма разности: {diff_norm:.16f}"
+    label_solution_error['text'] = f"Ошибка решения: {solution_error:.16f}"
+    if alpha_k is not None:
+        label_alpha['text'] = f"Alpha_k: {alpha_k:.16f}"
+    else:
+        label_alpha['text'] = ""
 
 def plot_fast_desc_method():
     global ani, a, b
@@ -88,6 +90,7 @@ def plot_fast_desc_method():
 
     u = np.zeros((n, n))
     next_u = np.zeros((n, n))
+    prev_u = np.zeros((n, n))
     
     for i in range(n):
         next_u[i][0] = real_u(i*h, 0)
@@ -101,19 +104,18 @@ def plot_fast_desc_method():
     
     img = ax.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0, 1, 0, 1))
     
-    iter_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color='black')
-    residual_text = ax.text(0.02, 0.90, "", transform=ax.transAxes, color='black')
-    alpha_text = ax.text(0.02, 0.85, "", transform=ax.transAxes, color='black')
-    
     r = np.zeros((n, n))
-    norm_r = float('+inf')
+    diff_norm = float('+inf')
+    solution_error = float('+inf')
     iteration = 0
     
     def update(frame):
-        nonlocal u, next_u, r, norm_r, iteration
+        nonlocal u, next_u, prev_u, r, diff_norm, solution_error, iteration
         
-        if norm_r <= eps:
-            return img, iter_text, residual_text, alpha_text
+        if diff_norm <= eps:
+            return img,
+        
+        prev_u = u.copy()
         
         for i in range(1, n - 1):
             for j in range(1, n - 1):
@@ -125,25 +127,31 @@ def plot_fast_desc_method():
         Ar = np.zeros_like(r)
         for i in range(1, n-1):
             for j in range(1, n-1):
-                Ar[i,j] = (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) / h**2 +
-                          b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) / tau**2)
+                Ar[i,j] = (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) / h**2 + b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) / tau**2)
         denom = np.sum(r[1:-1, 1:-1] * Ar[1:-1, 1:-1])
         alpha_k = numer / denom if denom != 0 else 0
         
         next_u[1:-1, 1:-1] = u[1:-1, 1:-1] - alpha_k * r[1:-1, 1:-1]
         u = next_u.copy()
         
-        norm_r = np.linalg.norm(r)
+        diff_norm = np.linalg.norm(u - prev_u)
+        
+        # Вычисляем ошибку по сравнению с точным решением
+        exact_solution = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                exact_solution[i][j] = real_u(i*h, j*tau)
+        #solution_error = np.linalg.norm(u - exact_solution)
+        solution_error = np.max(np.abs(u - exact_solution))
+        
         iteration += 1
         
         img.set_array(u.T)
         img.set_clim(np.min(u), np.max(u)) 
         
-        iter_text.set_text(f"Итерация: {iteration}")
-        residual_text.set_text(f"Норма невязки: {norm_r:.6f}")
-        alpha_text.set_text(f"Alpha_k: {alpha_k:.6f}")
+        update_iteration_info("Скорейшего спуска", iteration, diff_norm, solution_error, alpha_k)
         
-        return img, iter_text, residual_text, alpha_text
+        return img,
     
     ani = FuncAnimation(
         fig, 
@@ -167,8 +175,8 @@ def plot_jacobi_method():
 
     u = np.zeros((n, n))
     next_u = np.zeros((n, n))
+    prev_u = np.zeros((n, n))
     
-
     for i in range(n):
         next_u[i][0] = real_u(i * h, 0)
         next_u[i][n - 1] = real_u(i * h, 1)
@@ -179,51 +187,49 @@ def plot_jacobi_method():
     ax = fig.add_subplot(111)
     plt.title("Метод Якоби")
     
-
     img = ax.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0, 1, 0, 1))
     
-
-    iter_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color='black')
-    residual_text = ax.text(0.02, 0.90, "", transform=ax.transAxes, color='black')
-    
-    max_norm = float('+inf')
+    diff_norm = float('+inf')
+    solution_error = float('+inf')
     iteration = 0
     
     def update(frame):
-        nonlocal u, next_u, max_norm, iteration
+        nonlocal u, next_u, prev_u, diff_norm, solution_error, iteration
         
-        if max_norm <= eps:
-            return img, iter_text, residual_text
+        if diff_norm <= eps:
+            return img,
         
-
+        prev_u = u.copy()
+        
         for i in range(1, n - 1):
             for j in range(1, n - 1):
                 x_i = h * i
                 t_j = tau * j
                 next_u[i][j] = (f(x_i, t_j) * h * h * tau * tau + 
-                               a * tau * tau * (u[i + 1][j] + u[i - 1][j]) + 
-                               b * h * h * (u[i][j + 1] + u[i][j - 1])) / (2 * (a * tau * tau + b * h * h))
+                               a * tau * tau * (prev_u[i + 1][j] + prev_u[i - 1][j]) + 
+                               b * h * h * (prev_u[i][j + 1] + prev_u[i][j - 1])) / (2 * (a * tau * tau + b * h * h))
         
         u = next_u.copy()
         
-
-        max_norm = 0
-        diff_to_real_norm = 0
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
-                max_norm = max(max_norm, np.abs(real_u(i * h, j * tau) - u[i][j]))
+        diff_norm = np.linalg.norm(u - prev_u)
+        
+        # Вычисляем ошибку по сравнению с точным решением
+        exact_solution = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                exact_solution[i][j] = real_u(i*h, j*tau)
+        #solution_error = np.linalg.norm(u - exact_solution)
+        solution_error = np.max(np.abs(u - exact_solution))
         
         iteration += 1
         
-
         img.set_array(u.T)
         img.set_clim(np.min(u), np.max(u))
-        iter_text.set_text(f"Итерация: {iteration}")
-        residual_text.set_text(f"Ошибка: {max_norm:.6f}")
         
-        return img, iter_text, residual_text
+        update_iteration_info("Якоби", iteration, diff_norm, solution_error)
+        
+        return img,
     
-
     ani = FuncAnimation(
         fig, 
         update, 
@@ -233,11 +239,8 @@ def plot_jacobi_method():
         repeat=False       
     )
     
-    
     plt.tight_layout()
     plt.show()
-
-
 
 def plot_real_function():
     step = float(entry_step.get())
@@ -248,49 +251,77 @@ def plot_real_function():
 
     plt.figure(1)
     plt.imshow(Z, origin='lower', cmap='coolwarm', extent=(0,1,0,1))
-    
     plt.title("Точное решение")
-
     plt.show()
 
+# Create main window
 root = Tk()
-root.geometry('600x400')
+root.geometry('900x700')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
 
 root.title("Вычислительный практикум решение задачи Дирихле")
 
-label_step = ttk.Label(frm, text='Шаг сетки:')
-label_step.grid(column = 0, row = 0)
+# Parameters frame
+params_frame = ttk.LabelFrame(frm, text="Параметры", padding=10)
+params_frame.grid(column=0, row=0, padx=5, pady=5, sticky="nsew")
 
-entry_step = ttk.Entry(frm)
+label_step = ttk.Label(params_frame, text='Шаг сетки:')
+label_step.grid(column=0, row=0, sticky="w")
+
+entry_step = ttk.Entry(params_frame)
 entry_step.insert(0, '0.01')
-entry_step.grid(column = 1, row = 0)
+entry_step.grid(column=1, row=0, padx=5)
 
-#TODO: Сделать переключатель метода остановки (ошибка, погрешность, количество итераций)
-label_error = ttk.Label(frm, text='Эпсилон:')
-label_error.grid(column = 0, row = 1)
+label_error = ttk.Label(params_frame, text='Эпсилон:')
+label_error.grid(column=0, row=1, sticky="w")
 
-entry_error = ttk.Entry(frm)
+entry_error = ttk.Entry(params_frame)
 entry_error.insert(0, '0.01')
-entry_error.grid(column = 1, row = 1)
+entry_error.grid(column=1, row=1, padx=5)
 
+# Eigenvalues frame
+eigen_frame = ttk.LabelFrame(frm, text="Собственные значения", padding=10)
+eigen_frame.grid(column=0, row=1, padx=5, pady=5, sticky="nsew")
 
-label_min_eigen = ttk.Label(frm, text='Мин. собственное число:')
-label_min_eigen.grid(column = 0, row = 2)
+label_min_eigen = ttk.Label(eigen_frame, text='Мин. собственное число:')
+label_min_eigen.grid(column=0, row=0, sticky="w")
 
-label_min_eigen_value = ttk.Label(frm, text='0')
-label_min_eigen_value.grid(column = 1, row = 2)
+label_min_eigen_value = ttk.Label(eigen_frame, text='0')
+label_min_eigen_value.grid(column=1, row=0)
 
+label_max_eigen = ttk.Label(eigen_frame, text='Макс. собственное число:')
+label_max_eigen.grid(column=0, row=1, sticky="w")
 
-label_max_eigen = ttk.Label(frm, text='Макс. собственное число:')
-label_max_eigen.grid(column = 0, row = 3)
+label_max_eigen_value = ttk.Label(eigen_frame, text='0')
+label_max_eigen_value.grid(column=1, row=1)
 
-label_max_eigen_value = ttk.Label(frm, text='0')
-label_max_eigen_value.grid(column = 1, row = 3)
+# Iteration info frame
+iter_frame = ttk.LabelFrame(frm, text="Информация о решении", padding=10)
+iter_frame.grid(column=0, row=2, padx=5, pady=5, sticky="nsew")
 
-ttk.Button(frm, text='Показать точное решение', command=plot_real_function).grid(column = 1, row = 5)
-ttk.Button(frm, text='Метод Якоби', command=plot_jacobi_method).grid(column = 2, row = 5)
-ttk.Button(frm, text='Метод Скорейшего спуска', command=plot_fast_desc_method).grid(column = 3, row = 5)
-ttk.Button(frm, text='Найти собственные значения', command=find_eigen_values).grid(column = 1, row = 6)
+label_method = ttk.Label(iter_frame, text="Метод: ")
+label_method.grid(column=0, row=0, sticky="w")
+
+label_iteration = ttk.Label(iter_frame, text="Итерация: ")
+label_iteration.grid(column=0, row=1, sticky="w")
+
+label_diff_norm = ttk.Label(iter_frame, text="Норма разности: ")
+label_diff_norm.grid(column=0, row=2, sticky="w")
+
+label_solution_error = ttk.Label(iter_frame, text="Ошибка решения: ")
+label_solution_error.grid(column=0, row=3, sticky="w")
+
+label_alpha = ttk.Label(iter_frame, text="")
+label_alpha.grid(column=0, row=4, sticky="w")
+
+# Buttons frame
+buttons_frame = ttk.Frame(frm, padding=10)
+buttons_frame.grid(column=0, row=3, padx=5, pady=5, sticky="nsew")
+
+ttk.Button(buttons_frame, text='Точное решение', command=plot_real_function).grid(column=0, row=0, padx=5)
+ttk.Button(buttons_frame, text='Метод Якоби', command=plot_jacobi_method).grid(column=1, row=0, padx=5)
+ttk.Button(buttons_frame, text='Метод Скорейшего спуска', command=plot_fast_desc_method).grid(column=2, row=0, padx=5)
+ttk.Button(buttons_frame, text='Найти собственные значения', command=find_eigen_values).grid(column=3, row=0, padx=5)
+
 root.mainloop()
