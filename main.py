@@ -16,18 +16,19 @@ def f(x, y):
 
 def find_eigen_values():
     global a, b
-    h = float(entry_step.get())
-    tau = float(entry_step.get())
+    n = int(entry_step.get())
+    h = 1/n
 
-    n = (int)(1 // h) + 1
     eps = float(entry_error.get())
 
+
     u = np.ones((n, n))
-    for i in range(n):
-        u[i][0] = 0
-        u[i][n-1] = 0
-        u[0][i] = 0
-        u[n-1][i] = 0
+    if n > 2:
+        for i in range(n):
+            u[i][0] = 0
+            u[i][n-1] = 0
+            u[0][i] = 0
+            u[n-1][i] = 0
 
     u = u / np.linalg.norm(u)
     v = np.empty((n, n))
@@ -38,7 +39,7 @@ def find_eigen_values():
     while abs(prev_eigen - max_eigen_value) >= eps:
         for i in range(1, n - 1):
             for j in range(1, n - 1):
-                v[i][j] = -a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(tau*tau)
+                v[i][j] = -a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(h*h)
         
         prev_eigen = max_eigen_value
         max_eigen_value = 0
@@ -47,7 +48,11 @@ def find_eigen_values():
                 max_eigen_value += u[i][j] * v[i][j]
         
         u = v / np.linalg.norm(v)
-
+    
+    if n == 2:
+        label_max_eigen_value['text'] = str(max_eigen_value)
+        label_min_eigen_value['text'] = str(max_eigen_value)
+        return
     B_max_eigen_value = 0
     prev_eigen = float('inf')
     B_max_eigen_value = 0
@@ -55,7 +60,7 @@ def find_eigen_values():
     while abs(prev_eigen - B_max_eigen_value) >= eps:
         for i in range(1, n - 1):
             for j in range(1, n - 1):
-                v[i][j] = (max_eigen_value + 1) * u[i][j] - (-a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(tau*tau))
+                v[i][j] = (max_eigen_value + 1) * u[i][j] - (-a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(h*h))
         
         prev_eigen = B_max_eigen_value
         B_max_eigen_value = 0
@@ -88,10 +93,9 @@ def update_iteration_info(method, iteration, diff_norm, solution_error, alpha_k=
 
 def plot_fast_desc_method():
     global ani, a, b
-    h = float(entry_step.get())
-    tau = float(entry_step.get())
+    n = int(entry_step.get())
+    h = 1 / n
 
-    n = (int)(1 // h) + 1
     eps = float(entry_error.get())
 
     u = np.zeros((n, n))
@@ -101,8 +105,8 @@ def plot_fast_desc_method():
     for i in range(n):
         next_u[i][0] = real_u(i*h, 0)
         next_u[i][n-1] = real_u(i*h, 1)
-        next_u[0][i] = real_u(0, i*tau)
-        next_u[n-1][i] = real_u(1, i*tau)
+        next_u[0][i] = real_u(0, i*h)
+        next_u[n-1][i] = real_u(1, i*h)
     
     fig = plt.figure(3)
     ax = fig.add_subplot(111)
@@ -114,6 +118,11 @@ def plot_fast_desc_method():
     diff_norm = float('+inf')
     solution_error = float('+inf')
     iteration = 0
+
+    exact_solution = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            exact_solution[i][j] = real_u(i*h, j*h)
     
     def update(frame):
         nonlocal u, next_u, prev_u, r, diff_norm, solution_error, iteration
@@ -126,14 +135,14 @@ def plot_fast_desc_method():
         for i in range(1, n - 1):
             for j in range(1, n - 1):
                 r[i][j] = (a * (u[i+1][j] - 2*u[i][j] + u[i-1][j]) / h**2 + 
-                          b * (u[i][j+1] - 2*u[i][j] + u[i][j-1]) / tau**2 + 
-                          f(i*h, j*tau))
+                          b * (u[i][j+1] - 2*u[i][j] + u[i][j-1]) / h**2 + 
+                          f(i*h, j*h))
         
         numer = np.sum(r[1:-1, 1:-1]**2)
         Ar = np.zeros_like(r)
         for i in range(1, n-1):
             for j in range(1, n-1):
-                Ar[i,j] = (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) / h**2 + b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) / tau**2)
+                Ar[i,j] = (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) + b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) ) / (h * h)
         denom = np.sum(r[1:-1, 1:-1] * Ar[1:-1, 1:-1])
         alpha_k = numer / denom if denom != 0 else 0
         
@@ -141,14 +150,14 @@ def plot_fast_desc_method():
         u = next_u.copy()
         
         diff_norm = np.linalg.norm(u - prev_u)
-        
-        # Вычисляем ошибку по сравнению с точным решением
-        exact_solution = np.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                exact_solution[i][j] = real_u(i*h, j*tau)
-        #solution_error = np.linalg.norm(u - exact_solution)
-        solution_error = np.max(np.abs(u - exact_solution))
+            
+        solution_error = 0
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                solution_error = (u[i][j] - exact_solution[i][j]) ** 2
+                # solution_error = max(solution_error, abs(u[i][j] - exact_solution[i][j]))
+        solution_error = solution_error ** 0.5
+
         
         iteration += 1
         
@@ -178,10 +187,8 @@ def plot_fast_desc_method():
 
 def plot_jacobi_method():
     global ani, a, b
-    h = float(entry_step.get())
-    tau = float(entry_step.get())
-
-    n = (int)(1 // h) + 1
+    n = int(entry_step.get())
+    h = 1 / n
     eps = float(entry_error.get())
 
     u = np.zeros((n, n))
@@ -191,8 +198,8 @@ def plot_jacobi_method():
     for i in range(n):
         next_u[i][0] = real_u(i * h, 0)
         next_u[i][n - 1] = real_u(i * h, 1)
-        next_u[0][i] = real_u(0, i * tau)
-        next_u[n - 1][i] = real_u(1, i * tau)
+        next_u[0][i] = real_u(0, i * h)
+        next_u[n - 1][i] = real_u(1, i * h)
     
     fig = plt.figure(2)
     ax = fig.add_subplot(111)
@@ -203,6 +210,11 @@ def plot_jacobi_method():
     diff_norm = float('+inf')
     solution_error = float('+inf')
     iteration = 0
+
+    exact_solution = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            exact_solution[i][j] = real_u(i*h, j*h)
     
     def update(frame):
         nonlocal u, next_u, prev_u, diff_norm, solution_error, iteration
@@ -215,22 +227,20 @@ def plot_jacobi_method():
         for i in range(1, n - 1):
             for j in range(1, n - 1):
                 x_i = h * i
-                t_j = tau * j
-                next_u[i][j] = (f(x_i, t_j) * h * h * tau * tau + 
-                               a * tau * tau * (prev_u[i + 1][j] + prev_u[i - 1][j]) + 
-                               b * h * h * (prev_u[i][j + 1] + prev_u[i][j - 1])) / (2 * (a * tau * tau + b * h * h))
-        
+                t_j = h * j
+                next_u[i][j] = (a*(u[i+1][j] + u[i-1][j]) + b*(u[i][j+1] + u[i][j-1]) + f(x_i, t_j) * h * h) / (2*a+2*b)
         u = next_u.copy()
         
         diff_norm = np.linalg.norm(u - prev_u)
         
-        # Вычисляем ошибку по сравнению с точным решением
-        exact_solution = np.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                exact_solution[i][j] = real_u(i*h, j*tau)
-        #solution_error = np.linalg.norm(u - exact_solution)
-        solution_error = np.max(np.abs(u - exact_solution))
+            
+        solution_error = 0
+        for i in range(1, n - 1):
+            for j in range(1, n - 1):
+                solution_error = (u[i][j] - exact_solution[i][j]) ** 2
+                # solution_error = max(solution_error, abs(u[i][j] - exact_solution[i][j]))
+
+        solution_error = solution_error ** 0.5
         
         iteration += 1
 
@@ -258,7 +268,8 @@ def plot_jacobi_method():
     plt.show()
 
 def plot_real_function():
-    step = float(entry_step.get())
+    n = int(entry_step.get())
+    step = 1 / n
     X = np.arange(0, 1, step)
     Y = np.arange(0, 1, step)
     X, Y = np.meshgrid(X, Y)
@@ -281,11 +292,11 @@ root.title("Вычислительный практикум решение за�
 params_frame = ttk.LabelFrame(frm, text="Параметры", padding=10)
 params_frame.grid(column=0, row=0, padx=5, pady=5, sticky="nsew")
 
-label_step = ttk.Label(params_frame, text='Шаг сетки:')
+label_step = ttk.Label(params_frame, text='Размерность сетки:')
 label_step.grid(column=0, row=0, sticky="w")
 
 entry_step = ttk.Entry(params_frame)
-entry_step.insert(0, '0.01')
+entry_step.insert(0, '10')
 entry_step.grid(column=1, row=0, padx=5)
 
 label_error = ttk.Label(params_frame, text='Эпсилон:')
