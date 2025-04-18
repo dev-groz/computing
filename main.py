@@ -71,14 +71,20 @@ def find_eigen_values():
     label_min_eigen_value['text'] = str(min_eigen_value)
 
 def update_iteration_info(method, iteration, diff_norm, solution_error, alpha_k=None):
-    label_method['text'] = f"Метод: {method}"
-    label_iteration['text'] = f"Итерация: {iteration}"
-    label_diff_norm['text'] = f"Норма разности: {diff_norm:.16f}"
-    label_solution_error['text'] = f"Ошибка решения: {solution_error:.16f}"
-    if alpha_k is not None:
-        label_alpha['text'] = f"Alpha_k: {alpha_k:.16f}"
+    if method == 'Якоби':
+        label_method_jacobi['text'] = f"Метод: {method}"
+        label_iteration_jacobi['text'] = f"Итерация: {iteration}"
+        label_diff_norm_jacobi['text'] = f"Норма разности: {diff_norm:.16f}"
+        label_solution_error_jacobi['text'] = f"Ошибка решения: {solution_error:.16f}"
     else:
-        label_alpha['text'] = ""
+        label_method_desc['text'] = f"Метод: {method}"
+        label_iteration_desc['text'] = f"Итерация: {iteration}"
+        label_diff_norm_desc['text'] = f"Норма разности: {diff_norm:.16f}"
+        label_solution_error_desc['text'] = f"Ошибка решения: {solution_error:.16f}"
+        if alpha_k is not None:
+            label_alpha_desc['text'] = f"Alpha_k: {alpha_k:.16f}"
+        else:
+            label_alpha_desc['text'] = ""
 
 def plot_fast_desc_method():
     global ani, a, b
@@ -146,10 +152,15 @@ def plot_fast_desc_method():
         
         iteration += 1
         
+        update_iteration_info("Скорейшего спуска", iteration, diff_norm, solution_error, alpha_k)
+        
+        skip_value = int(entry_skip.get())
+        if iteration % skip_value != 0:
+            return img,
+
         img.set_array(u.T)
         img.set_clim(np.min(u), np.max(u)) 
         
-        update_iteration_info("Скорейшего спуска", iteration, diff_norm, solution_error, alpha_k)
         
         return img,
     
@@ -222,11 +233,15 @@ def plot_jacobi_method():
         solution_error = np.max(np.abs(u - exact_solution))
         
         iteration += 1
+
+        update_iteration_info("Якоби", iteration, diff_norm, solution_error)
+
+        skip_value = int(entry_skip.get())
+        if iteration % skip_value != 0:
+            return img,
         
         img.set_array(u.T)
         img.set_clim(np.min(u), np.max(u))
-        
-        update_iteration_info("Якоби", iteration, diff_norm, solution_error)
         
         return img,
     
@@ -256,7 +271,7 @@ def plot_real_function():
 
 # Create main window
 root = Tk()
-root.geometry('900x700')
+root.geometry('900x500')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
 
@@ -280,6 +295,13 @@ entry_error = ttk.Entry(params_frame)
 entry_error.insert(0, '0.01')
 entry_error.grid(column=1, row=1, padx=5)
 
+label_skip = ttk.Label(params_frame, text='Отрисовывать каждую итерацию кратную:')
+label_skip.grid(column=0, row=2, sticky="w")
+
+entry_skip = ttk.Entry(params_frame)
+entry_skip.insert(0, '10')
+entry_skip.grid(column=1, row=2, padx=5)
+
 # Eigenvalues frame
 eigen_frame = ttk.LabelFrame(frm, text="Собственные значения", padding=10)
 eigen_frame.grid(column=0, row=1, padx=5, pady=5, sticky="nsew")
@@ -297,23 +319,38 @@ label_max_eigen_value = ttk.Label(eigen_frame, text='0')
 label_max_eigen_value.grid(column=1, row=1)
 
 # Iteration info frame
-iter_frame = ttk.LabelFrame(frm, text="Информация о решении", padding=10)
-iter_frame.grid(column=0, row=2, padx=5, pady=5, sticky="nsew")
+iter_frame_jacobi = ttk.LabelFrame(frm, text="Информация о решении Якоби", padding=10)
+iter_frame_jacobi.grid(column=0, row=2, padx=5, pady=5, sticky="nsew")
 
-label_method = ttk.Label(iter_frame, text="Метод: ")
-label_method.grid(column=0, row=0, sticky="w")
+label_method_jacobi = ttk.Label(iter_frame_jacobi, text="Метод: ")
+label_method_jacobi.grid(column=0, row=0, sticky="w")
 
-label_iteration = ttk.Label(iter_frame, text="Итерация: ")
-label_iteration.grid(column=0, row=1, sticky="w")
+label_iteration_jacobi = ttk.Label(iter_frame_jacobi, text="Итерация: ")
+label_iteration_jacobi.grid(column=0, row=1, sticky="w")
 
-label_diff_norm = ttk.Label(iter_frame, text="Норма разности: ")
-label_diff_norm.grid(column=0, row=2, sticky="w")
+label_diff_norm_jacobi = ttk.Label(iter_frame_jacobi, text="Норма разности: ")
+label_diff_norm_jacobi.grid(column=0, row=2, sticky="w")
 
-label_solution_error = ttk.Label(iter_frame, text="Ошибка решения: ")
-label_solution_error.grid(column=0, row=3, sticky="w")
+label_solution_error_jacobi = ttk.Label(iter_frame_jacobi, text="Ошибка решения: ")
+label_solution_error_jacobi.grid(column=0, row=3, sticky="w")
 
-label_alpha = ttk.Label(iter_frame, text="")
-label_alpha.grid(column=0, row=4, sticky="w")
+iter_frame_desc = ttk.LabelFrame(frm, text="Информация о решении Скорейшего спуска", padding=10)
+iter_frame_desc.grid(column=1, row=2, padx=5, pady=5, sticky="nsew")
+
+label_method_desc = ttk.Label(iter_frame_desc, text="Метод: ")
+label_method_desc.grid(column=0, row=0, sticky="w")
+
+label_iteration_desc = ttk.Label(iter_frame_desc, text="Итерация: ")
+label_iteration_desc.grid(column=0, row=1, sticky="w")
+
+label_diff_norm_desc = ttk.Label(iter_frame_desc, text="Норма разности: ")
+label_diff_norm_desc.grid(column=0, row=2, sticky="w")
+
+label_solution_error_desc = ttk.Label(iter_frame_desc, text="Ошибка решения: ")
+label_solution_error_desc.grid(column=0, row=3, sticky="w")
+
+label_alpha_desc = ttk.Label(iter_frame_desc, text="")
+label_alpha_desc.grid(column=0, row=4, sticky="w")
 
 # Buttons frame
 buttons_frame = ttk.Frame(frm, padding=10)
