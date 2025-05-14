@@ -22,8 +22,8 @@ def find_eigen_values():
     eps = float(entry_error.get())
 
 
-    u = np.ones((n, n))
-    if n > 2:
+    u = np.ones((n + 1, n + 1))
+    if n > 1:
         for i in range(n):
             u[i][0] = 0
             u[i][n-1] = 0
@@ -31,25 +31,25 @@ def find_eigen_values():
             u[n-1][i] = 0
 
     u = u / np.linalg.norm(u)
-    v = np.empty((n, n))
+    v = np.empty((n + 1, n + 1))
 
     prev_eigen = float('inf')
     max_eigen_value = 0
 
     while abs(prev_eigen - max_eigen_value) >= eps:
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
+        for i in range(1, n):
+            for j in range(1, n):
                 v[i][j] = -a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(h*h)
         
         prev_eigen = max_eigen_value
         max_eigen_value = 0
-        for i in range(n):
-            for j in range(n):
+        for i in range(n + 1):
+            for j in range(n + 1):
                 max_eigen_value += u[i][j] * v[i][j]
         
         u = v / np.linalg.norm(v)
     
-    if n == 2:
+    if n == 1:
         label_max_eigen_value['text'] = str(max_eigen_value)
         label_min_eigen_value['text'] = str(max_eigen_value)
         return
@@ -58,14 +58,14 @@ def find_eigen_values():
     B_max_eigen_value = 0
 
     while abs(prev_eigen - B_max_eigen_value) >= eps:
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
+        for i in range(1, n):
+            for j in range(1, n):
                 v[i][j] = (max_eigen_value + 1) * u[i][j] - (-a*(u[i+1][j] - 2 * u[i][j] + u[i-1][j])/(h*h) - b*(u[i][j+1] - 2 * u[i][j] + u[i][j-1])/(h*h))
         
         prev_eigen = B_max_eigen_value
         B_max_eigen_value = 0
-        for i in range(n):
-            for j in range(n):
+        for i in range(n + 1):
+            for j in range(n + 1):
                 B_max_eigen_value += u[i][j] * v[i][j]
 
         u = v / np.linalg.norm(v)
@@ -97,16 +97,17 @@ def plot_fast_desc_method():
     h = 1 / n
 
     eps = float(entry_error.get())
+    skip_value = int(entry_skip.get())
 
-    u = np.zeros((n, n))
-    next_u = np.zeros((n, n))
-    prev_u = np.zeros((n, n))
+    u = np.zeros((n + 1, n + 1))
+    next_u = np.zeros((n + 1, n + 1))
+    prev_u = np.zeros((n + 1, n + 1))
     
-    for i in range(n):
+    for i in range(n + 1):
         next_u[i][0] = real_u(i*h, 0)
-        next_u[i][n-1] = real_u(i*h, 1)
+        next_u[i][n] = real_u(i*h, 1)
         next_u[0][i] = real_u(0, i*h)
-        next_u[n-1][i] = real_u(1, i*h)
+        next_u[n][i] = real_u(1, i*h)
     
     fig = plt.figure(3)
     ax = fig.add_subplot(111)
@@ -114,12 +115,12 @@ def plot_fast_desc_method():
     
     img = ax.imshow(u.T, origin='lower', cmap='coolwarm', extent=(0, 1, 0, 1))
     
-    r = np.zeros((n, n))
+    r = np.zeros((n + 1, n + 1))
     diff_norm = float('+inf')
     solution_error = float('+inf')
     iteration = 0
 
-    exact_solution = np.zeros((n, n))
+    exact_solution = np.zeros((n + 1, n + 1))
     for i in range(n):
         for j in range(n):
             exact_solution[i][j] = real_u(i*h, j*h)
@@ -132,16 +133,16 @@ def plot_fast_desc_method():
         
         prev_u = u.copy()
         
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
+        for i in range(1, n):
+            for j in range(1, n):
                 r[i][j] = (a * (u[i+1][j] - 2*u[i][j] + u[i-1][j]) / h**2 + 
                           b * (u[i][j+1] - 2*u[i][j] + u[i][j-1]) / h**2 + 
                           f(i*h, j*h))
         
         numer = np.sum(r[1:-1, 1:-1]**2)
         Ar = np.zeros_like(r)
-        for i in range(1, n-1):
-            for j in range(1, n-1):
+        for i in range(1, n):
+            for j in range(1, n):
                 Ar[i,j] = (a * (r[i+1][j] - 2*r[i][j] + r[i-1][j]) + b * (r[i][j+1] - 2*r[i][j] + r[i][j-1]) ) / (h * h)
         denom = np.sum(r[1:-1, 1:-1] * Ar[1:-1, 1:-1])
         alpha_k = numer / denom if denom != 0 else 0
@@ -149,21 +150,28 @@ def plot_fast_desc_method():
         next_u[1:-1, 1:-1] = u[1:-1, 1:-1] - alpha_k * r[1:-1, 1:-1]
         u = next_u.copy()
         
-        diff_norm = np.linalg.norm(u - prev_u)
-            
-        solution_error = 0
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
-                solution_error = (u[i][j] - exact_solution[i][j]) ** 2
-                # solution_error = max(solution_error, abs(u[i][j] - exact_solution[i][j]))
-        solution_error = solution_error ** 0.5
+        # diff_norm = np.linalg.norm(u - prev_u)
+        diff_norm = 0
+        for i in range(1, n):
+            for j in range(1, n):
+                diff_norm = max(diff_norm, abs(u[i][j] - prev_u[i][j]))
+    
 
+        solution_error = 0
+        for i in range(1, n):
+            for j in range(1, n):
+                # solution_error = (u[i][j] - exact_solution[i][j]) ** 2
+                solution_error = max(solution_error, abs(u[i][j] - exact_solution[i][j]))
+
+        # solution_error = solution_error ** 0.5
         
         iteration += 1
-        
+
+#        if iteration % skip_value != 0:
+#            return img,
+            
         update_iteration_info("Скорейшего спуска", iteration, diff_norm, solution_error, alpha_k)
-        
-        skip_value = int(entry_skip.get())
+
         if iteration % skip_value != 0:
             return img,
 
@@ -176,7 +184,7 @@ def plot_fast_desc_method():
     ani = FuncAnimation(
         fig, 
         update, 
-        frames=range(1000),
+        frames=range(5000),
         interval=100,      
         blit=True,         
         repeat=False       
@@ -190,16 +198,18 @@ def plot_jacobi_method():
     n = int(entry_step.get())
     h = 1 / n
     eps = float(entry_error.get())
+###
+    skip_value = int(entry_skip.get())
 
-    u = np.zeros((n, n))
-    next_u = np.zeros((n, n))
-    prev_u = np.zeros((n, n))
+    u = np.zeros((n+1, n+1))
+    next_u = np.zeros((n+1, n+1))
+    prev_u = np.zeros((n+1, n+1))
     
-    for i in range(n):
+    for i in range(n+1):
         next_u[i][0] = real_u(i * h, 0)
-        next_u[i][n - 1] = real_u(i * h, 1)
+        next_u[i][n] = real_u(i * h, 1)
         next_u[0][i] = real_u(0, i * h)
-        next_u[n - 1][i] = real_u(1, i * h)
+        next_u[n][i] = real_u(1, i * h)
     
     fig = plt.figure(2)
     ax = fig.add_subplot(111)
@@ -211,9 +221,9 @@ def plot_jacobi_method():
     solution_error = float('+inf')
     iteration = 0
 
-    exact_solution = np.zeros((n, n))
-    for i in range(n):
-        for j in range(n):
+    exact_solution = np.zeros((n+1, n+1))
+    for i in range(n+1):
+        for j in range(n+1):
             exact_solution[i][j] = real_u(i*h, j*h)
     
     def update(frame):
@@ -224,29 +234,36 @@ def plot_jacobi_method():
         
         prev_u = u.copy()
         
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
+        for i in range(1, n):
+            for j in range(1, n):
                 x_i = h * i
                 t_j = h * j
                 next_u[i][j] = (a*(u[i+1][j] + u[i-1][j]) + b*(u[i][j+1] + u[i][j-1]) + f(x_i, t_j) * h * h) / (2*a+2*b)
         u = next_u.copy()
         
-        diff_norm = np.linalg.norm(u - prev_u)
-        
-            
-        solution_error = 0
-        for i in range(1, n - 1):
-            for j in range(1, n - 1):
-                solution_error = (u[i][j] - exact_solution[i][j]) ** 2
-                # solution_error = max(solution_error, abs(u[i][j] - exact_solution[i][j]))
+        # diff_norm = np.linalg.norm(u - prev_u)
+        diff_norm = 0
+        for i in range(1, n):
+            for j in range(1, n):
+                diff_norm = max(diff_norm, abs(u[i][j] - prev_u[i][j]))
+    
 
-        solution_error = solution_error ** 0.5
+        solution_error = 0
+        for i in range(1, n):
+            for j in range(1, n):
+                # solution_error = (u[i][j] - exact_solution[i][j]) ** 2
+                solution_error = max(solution_error, abs(u[i][j] - exact_solution[i][j]))
+
+        # solution_error = solution_error ** 0.5
         
         iteration += 1
 
+#        if iteration % skip_value != 0:
+#            return img,
+            
         update_iteration_info("Якоби", iteration, diff_norm, solution_error)
 
-        skip_value = int(entry_skip.get())
+#        skip_value = int(entry_skip.get())
         if iteration % skip_value != 0:
             return img,
         
@@ -258,7 +275,7 @@ def plot_jacobi_method():
     ani = FuncAnimation(
         fig, 
         update, 
-        frames=range(1000),
+        frames=range(5000),
         interval=100,      
         blit=True,         
         repeat=False       
@@ -268,7 +285,7 @@ def plot_jacobi_method():
     plt.show()
 
 def plot_real_function():
-    n = int(entry_step.get())
+    n = int(entry_step.get()) + 1
     step = 1 / n
     X = np.arange(0, 1, step)
     Y = np.arange(0, 1, step)
